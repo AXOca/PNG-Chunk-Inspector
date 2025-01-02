@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SD Metadata Extractor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.5;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            background-color: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .drop-zone {
+            border: 2px dashed #666;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+            background-color: #333;
+        }
+
+        .drop-zone:hover {
+            border-color: #999;
+            background-color: #404040;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+
+        input:read-only, textarea:read-only {
+            background-color: #2a2a2a;
+            cursor: default;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            color: #e0e0e0;
+        }
+
+        h2 {
+            color: #e0e0e0;
+            margin-bottom: 1rem;
+        }
+
+        .raw-metadata {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .copy-btn {
+            padding: 4px 8px;
+            background-color: #444;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            height: fit-content;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+            color: #e0e0e0;
+        }
+
+        .copy-btn:hover {
+            background-color: #555;
+        }
+
+        .copy-btn.copied {
+            background-color: #2e7d32;
+            color: white;
+        }
+
+        .image-preview {
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .input-with-copy {
+            position: relative;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .input-with-copy textarea,
+        .input-with-copy input {
+            flex: 1;
+        }
+
+        .input-with-copy .copy-btn {
+            flex-shrink: 0;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>SD Metadata Extractor</h1>
+    
+    <div class="container">
+        <div>
+            <h2>Upload Image</h2>
+            <div class="drop-zone" id="dropZone">
+                <p>Drop png file here</p>
+                <input type="file" id="fileInput" accept=".png" style="display: none">
+            </div>
+            <div class="image-preview">
+                <img id="previewImage" style="display: none;">
+            </div>
+        </div>
+
+        <div>
+            <h2>Generation Data</h2>
+            <div class="form-group">
+                <label for="txtPrompt">Prompt</label>
+                <div class="input-with-copy">
+                    <textarea id="txtPrompt" readonly></textarea>
+                    <button class="copy-btn" data-target="txtPrompt">Copy</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="txtNegative">Negative Prompt</label>
+                <div class="input-with-copy">
+                    <textarea id="txtNegative" readonly></textarea>
+                    <button class="copy-btn" data-target="txtNegative">Copy</button>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="form-group">
+                    <label for="txtModel">Model</label>
+                    <div class="input-with-copy">
+                        <input type="text" id="txtModel" readonly>
+                        <button class="copy-btn" data-target="txtModel">Copy</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="txtSeed">Seed</label>
+                    <div class="input-with-copy">
+                        <input type="text" id="txtSeed" readonly>
+                        <button class="copy-btn" data-target="txtSeed">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="form-group">
+                    <label for="txtCfg">CFG/Guidance</label>
+                    <div class="input-with-copy">
+                        <input type="text" id="txtCfg" readonly>
+                        <button class="copy-btn" data-target="txtCfg">Copy</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="txtSteps">Steps</label>
+                    <div class="input-with-copy">
+                        <input type="text" id="txtSteps" readonly>
+                        <button class="copy-btn" data-target="txtSteps">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="form-group">
+                    <label for="txtSize">Size</label>
+                    <div class="input-with-copy">
+                        <input type="text" id="txtSize" readonly>
+                        <button class="copy-btn" data-target="txtSize">Copy</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="txtSampler">Sampler</label>
+                    <div class="input-with-copy">
+                        <input type="text" id="txtSampler" readonly>
+                        <button class="copy-btn" data-target="txtSampler">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="txtRaw">Raw Metadata</label>
+                <div class="input-with-copy">
+                    <textarea id="txtRaw" class="raw-metadata" readonly></textarea>
+                    <button class="copy-btn" data-target="txtRaw">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PNGParser {
+            constructor(arrayBuffer) {
+                this.view = new DataView(arrayBuffer);
+                this.offset = 8; // Skip PNG signature
+                this.chunks = [];
+            }
+
+            readChunks() {
+                while (this.offset < this.view.byteLength) {
+                    const chunk = this.readChunk();
+                    if (!chunk) break;
+                    this.chunks.push(chunk);
+                }
+                return this.chunks;
+            }
+
+            readChunk() {
+                if (this.offset + 12 > this.view.byteLength) return null;
+
+                const length = this.view.getUint32(this.offset);
+                const type = this.readChunkType(this.offset + 4);
+                const dataStart = this.offset + 8;
+                const dataEnd = dataStart + length;
+                const crc = this.view.getUint32(dataEnd);
+
+                let data;
+                if (type === 'tEXt' || type === 'iTXt') {
+                    data = this.readTextChunk(dataStart, length);
+                } else if (type === 'zTXt') {
+                    data = this.readCompressedTextChunk(dataStart, length);
+                }
+
+                this.offset = dataEnd + 4;
+
+                return {
+                    length,
+                    type,
+                    data,
+                    crc
+                };
+            }
+
+            readChunkType(offset) {
+                return String.fromCharCode(
+                    this.view.getUint8(offset),
+                    this.view.getUint8(offset + 1),
+                    this.view.getUint8(offset + 2),
+                    this.view.getUint8(offset + 3)
+                );
+            }
+
+            readTextChunk(offset, length) {
+                let nullIndex = offset;
+                while (nullIndex < offset + length && this.view.getUint8(nullIndex) !== 0) {
+                    nullIndex++;
+                }
+
+                const keyword = this.readString(offset, nullIndex - offset);
+                const text = this.readString(nullIndex + 1, offset + length - (nullIndex + 1));
+
+                return {
+                    keyword,
+                    text
+                };
+            }
+
+            readString(offset, length) {
+                const bytes = new Uint8Array(this.view.buffer, offset, length);
+                return new TextDecoder().decode(bytes);
+            }
+
+            readCompressedTextChunk(offset, length) {
+                return null;
+            }
+        }
+
+        // Handle copy button clicks
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('copy-btn')) {
+                const targetId = e.target.getAttribute('data-target');
+                const targetElement = document.getElementById(targetId);
+                // Clean the text
+                const text = targetElement.value.replace(/\u0000/g, '').trim();
+
+                try {
+                    await navigator.clipboard.writeText(text);
+                    e.target.classList.add('copied');
+                    setTimeout(() => {
+                        e.target.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text:', err);
+                }
+            }
+        });
+
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#666';
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            if (e.target === document || e.target === document.body) {
+                dropZone.style.borderColor = '#ccc';
+            }
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#ccc';
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#666';
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '#ccc';
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#ccc';
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function clearAllFields() {
+            document.getElementById('txtPrompt').value = '';
+            document.getElementById('txtNegative').value = '';
+            document.getElementById('txtModel').value = '';
+            document.getElementById('txtSeed').value = '';
+            document.getElementById('txtCfg').value = '';
+            document.getElementById('txtSteps').value = '';
+            document.getElementById('txtSize').value = '';
+            document.getElementById('txtSampler').value = '';
+            document.getElementById('txtRaw').value = '';
+            const previewImage = document.getElementById('previewImage');
+            previewImage.src = '';
+            previewImage.style.display = 'none';
+        }
+
+        function handleFile(file) {
+            if (!file.type.includes('png')) {
+                alert('Please select a PNG file');
+                return;
+            }
+            
+            clearAllFields();
+
+            const imageReader = new FileReader();
+            imageReader.onload = function(e) {
+                const previewImage = document.getElementById('previewImage');
+                previewImage.src = e.target.result;
+                previewImage.style.display = 'block';
+            };
+            imageReader.readAsDataURL(file);
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const parser = new PNGParser(e.target.result);
+                const chunks = parser.readChunks();
+                
+                const textChunks = chunks.filter(chunk => 
+                    ['tEXt', 'iTXt', 'zTXt'].includes(chunk.type) && chunk.data
+                );
+
+                let metadata = '';
+                textChunks.forEach(chunk => {
+                    if (chunk.data.text) {
+                        metadata += chunk.data.text + '\n';
+                    }
+                });
+
+                processMetadata(metadata);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processMetadata(metadata) {
+            try {
+                const invokeMatch = metadata.match(/invokeai_metadata({.*?})(?=\s*invokeai_graph|$)/s);
+                if (invokeMatch) {
+                    try {
+                        const jsonStr = invokeMatch[1].replace(/[""]/g, '"');
+                        const json = JSON.parse(jsonStr);
+                        displayMetadata(json);
+                        return;
+                    } catch (e) {
+                        console.error('Error parsing InvokeAI JSON:', e);
+                    }
+                }
+
+                if (metadata.includes('Steps: ')) {
+                    processA1111Format(metadata);
+                    return;
+                }
+
+                document.getElementById('txtRaw').value = metadata;
+
+            } catch (e) {
+                console.error('Error processing metadata:', e);
+                document.getElementById('txtRaw').value = metadata;
+            }
+        }
+
+        function displayMetadata(json) {
+            document.getElementById('txtPrompt').value = json.positive_prompt || '';
+            document.getElementById('txtNegative').value = json.negative_prompt || '';
+            document.getElementById('txtModel').value = json.model?.name || '';
+            document.getElementById('txtSeed').value = json.seed || '';
+            document.getElementById('txtCfg').value = json.guidance || '';
+            document.getElementById('txtSteps').value = json.steps || '';
+            document.getElementById('txtSize').value = `${json.width}x${json.height}` || '';
+            document.getElementById('txtSampler').value = json.scheduler || 'Default';
+            document.getElementById('txtRaw').value = JSON.stringify(json, null, 2);
+        }
+
+        function processA1111Format(params) {
+            const [prompt, rest] = params.split('Negative prompt:');
+            const negPrompt = rest ? rest.split('Steps:')[0] : '';
+            
+            document.getElementById('txtPrompt').value = prompt?.trim() || '';
+            document.getElementById('txtNegative').value = negPrompt?.trim() || '';
+            
+            const steps = params.match(/Steps: (\d+)/)?.[1] || '';
+            const sampler = params.match(/Sampler: ([^,]+)/)?.[1] || '';
+            const cfg = params.match(/CFG scale: ([\d.]+)/)?.[1] || '';
+            const seed = params.match(/Seed: (\d+)/)?.[1] || '';
+            const size = params.match(/Size: (\d+x\d+)/)?.[1] || '';
+            const model = params.match(/Model: ([^,]+)/)?.[1] || '';
+            
+            document.getElementById('txtSampler').value = sampler;
+            document.getElementById('txtModel').value = model;
+            document.getElementById('txtSeed').value = seed;
+            document.getElementById('txtCfg').value = cfg;
+            document.getElementById('txtSteps').value = steps;
+            document.getElementById('txtSize').value = size;
+            document.getElementById('txtRaw').value = params;
+        }
+    </script>
+</body>
+</html>
