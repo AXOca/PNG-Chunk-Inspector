@@ -144,6 +144,35 @@
             border-radius: 8px;
         }
 
+        input[type="url"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+
+        input[type="url"]::placeholder {
+            color: #888;
+        }
+
+        #loadUrlBtn {
+            background-color: #444;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #loadUrlBtn:hover {
+            background-color: #555;
+        }
+
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -160,6 +189,13 @@
             <div class="drop-zone" id="dropZone">
                 <p>Drop png file here</p>
                 <input type="file" id="fileInput" accept=".png" style="display: none">
+            </div>
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="imageUrl">Or load from URL</label>
+                <div class="input-with-copy">
+                    <input type="url" id="imageUrl" placeholder="Enter image URL">
+                    <button class="copy-btn" id="loadUrlBtn">Load</button>
+                </div>
             </div>
             <div class="image-preview">
                 <img id="previewImage" style="display: none;">
@@ -496,6 +532,37 @@
             document.getElementById('txtSize').value = size;
             document.getElementById('txtRaw').value = params;
         }
+
+        document.getElementById('loadUrlBtn').addEventListener('click', async () => {
+            const urlInput = document.getElementById('imageUrl');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType.includes('png')) {
+                    alert('The URL must point to a PNG image');
+                    return;
+                }
+
+                const blob = await response.blob();
+                
+                const file = new File([blob], 'image.png', { type: 'image/png' });
+                
+                handleFile(file);
+                
+            } catch (error) {
+                alert('Error loading image from URL: ' + error.message);
+                console.error('Error:', error);
+            }
+        });
     </script>
 </body>
 </html>
